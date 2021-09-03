@@ -1,0 +1,81 @@
+//SQL
+CREATE PROCEDURE sp_bulk_insert_update
+AS
+  BEGIN
+    DECLARE cr_test CURSOR FOR
+    SELECT DISTINCT product
+    FROM            test
+    DECLARE @p AS VARCHAR(50)
+    BEGIN
+      OPEN cr_test
+      FETCH cr_test
+      INTO  @p
+      WHILE @@FETCH_STATUS=0
+      BEGIN
+        IF
+           (
+           SELECT 1
+           FROM   product
+           WHERE  product_name=@p)
+        BEGIN
+          UPDATE attribute
+          SET    price=
+                 (
+                        SELECT attributevalue
+                        FROM   test UNPIVOT ( attributevalue FOR attribute IN (price) ) AS unpivottest
+                        WHERE  product=@p)
+          WHERE  attribute.produt_id=
+                 (
+                        SELECT product_id
+                        FROM   product
+                        WHERE  product_name=@p)
+        END
+        ELSE
+        BEGIN
+          INSERT INTO product VALUES
+          select product
+          FROM   test
+          INSERT INTO attributes VALUES
+          select     product_id,
+                     t.attribute,
+                     t.attributevalue
+          FROM       product p
+          INNER JOIN
+                     (
+                            SELECT product,
+                                   attribute,
+                                   attributevalue
+                            FROM   test UNPIVOT ( attributevalue FOR attribute IN (price) ) AS unpivottest)t
+          ON         t.product=p.product_name
+          INSERT INTO size
+          SELECT     product_id,
+                     t.attributevalue
+          FROM       product p
+          INNER JOIN
+                     (
+                            SELECT product,
+                                   attribute,
+                                   attributevalue
+                            FROM   test UNPIVOT ( attributevalue FOR attribute IN (size) ) AS unpivottest)t
+          ON         t.product=p.product_name
+        END
+        INSERT INTO color
+        SELECT     product_id,
+                   t.attributevalue
+        FROM       product p
+        INNER JOIN
+                   (
+                          SELECT product,
+                                 attribute,
+                                 attributevalue
+                          FROM   test UNPIVOT ( attributevalue FOR attribute IN (color) ) AS unpivottest)t
+        ON         t.product=p.product_name
+      END
+      FETCH cr_test
+      INTO  @p
+    END
+    CLOSE cr_test
+    DEALLOCATE cr_test
+  END
+  
+//END SQL
